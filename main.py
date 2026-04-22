@@ -21,8 +21,8 @@ inngest_client = inngest.Inngest(
 
 )
 
-
-# Custom Groq adapter for Inngest
+#Inngest documentation and resources : https://www.inngest.com/docs/guides/concurrency
+#Custom Groq adapter for Inngest
 class GroqAdapter(ai.BaseAdapter):
     def __init__(self, auth_key: str, model: str = "llama-3.3-70b-versatile"):
         from groq import Groq
@@ -56,8 +56,18 @@ class GroqAdapter(ai.BaseAdapter):
 
 @inngest_client.create_function(
     fn_id="RAG: Ingest PDF",
-    trigger=inngest.TriggerEvent(event="rag/ingest_pdf")
+    trigger=inngest.TriggerEvent(event="rag/ingest_pdf"),
+    #Adding Throttle and rate_limit : 
+    throttle=inngest.Throttle(
+        count=2, period=datetime.timedelta(minutes=1)
+    ),
+    rate_limit=inngest.RateLimit(
+        limit=1,
+        period=datetime.timedelta(hours=4),
+        keys="event.data.source_id",
+    ),
 )
+
 async def rag_ingest_pdf(ctx: inngest.Context):
     def _load(ctx: inngest.Context) -> RAGChunkAndSrc:
         pdf_path = ctx.event.data["pdf_path"]
